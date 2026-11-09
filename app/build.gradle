@@ -1,0 +1,74 @@
+import java.util.Properties
+
+plugins {
+    id 'com.android.application'
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+def releaseStoreFile = keystoreProperties.getProperty('storeFile')
+        ?: System.getenv('XIAOMIPODS_KEYSTORE')
+def releaseStorePassword = keystoreProperties.getProperty('storePassword')
+        ?: System.getenv('XIAOMIPODS_KEYSTORE_PASSWORD')
+def releaseKeyAlias = keystoreProperties.getProperty('keyAlias')
+        ?: System.getenv('XIAOMIPODS_KEY_ALIAS')
+def releaseKeyPassword = keystoreProperties.getProperty('keyPassword')
+        ?: System.getenv('XIAOMIPODS_KEY_PASSWORD')
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword
+        && releaseKeyAlias && releaseKeyPassword
+
+android {
+    namespace 'io.github.xiaomipods.coloros'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "io.github.xiaomipods.coloros"
+        minSdk 31
+        targetSdk 36
+        versionCode 1
+        versionName "0.1.0"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile rootProject.file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Fall back to debug signing for local test builds only.
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            merges += "META-INF/xposed/*"
+        }
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    compileOnly 'io.github.libxposed:api:102.0.0'
+}
